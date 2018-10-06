@@ -123,15 +123,25 @@ if detected:
     #トラッキングモード起動
     vcap.goTrackingMode(img,tuple(point[0]))
 
+    #見失った回数
+    miss_count = 0
+
     while(True)
 
         x,y,w,h = vcap.getbbox()
         size = vcap.cap_size
 
-        #トラッキングが外れたらbreakする
+        #トラッキングが外れたときの処理
         if (x,y,w,h) == (0,0,0,0):
-            logger.info('missed!!')
-            break
+            #10回連続でトラッキングできなかったらbreakする
+            if miss_count == 10:
+                break
+            logger.info('missed!! count={}'.format(miss_count))
+            miss_count += 1
+            #トラッキングできたときの処理は行わず、次のトラッキング結果を待つ
+            continue
+        #ちゃんとトラッキングできたときにはmiss_countをクリア
+        miss_count = 0
 
         #左右どちらにどれだけ寄っているか
         #-0.5 ～ 0.5の範囲で示す
