@@ -50,6 +50,7 @@ class VideoCapturer(Thread):
 
         self.event = Event()
         self.q = queue.LifoQueue()
+        self.q4track = queue.LifoQueue()
         self.stop_flg = False #スレッド停止フラグ
         self.trackingMode = False #トラッキングモードフラグ
 
@@ -75,11 +76,11 @@ class VideoCapturer(Thread):
                 self.event.clear()
 
     def trackTarget(self):
-        logger.info('========================')
         logger.info('tracking mode!!')
         tracker = cv2.TrackerKCF_create()
         ok = tracker.init(self.targetView, self.bbox)
         counter = get_counter()
+        fourcc = cv2.VideoWriter_fourcc(*'XVID')
         out = cv2.VideoWriter('img/trackingLog{:05d}.avi'.format(counter), fourcc, self.cap.get(5), self.cap_size)
         save_counter(counter + 1)
 
@@ -110,7 +111,7 @@ class VideoCapturer(Thread):
             cv2.putText(frame, "FPS : " + str(int(fps)), (10,20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 1, cv2.LINE_AA)
 
             #検出したbboxをメインスレッドに返す
-            self.q.put(bbox)
+            self.q4track.put(bbox)
 
             # 加工済の画像を保存する
             out.write(frame)
@@ -131,11 +132,10 @@ class VideoCapturer(Thread):
 
     #bbox取得
     def get_bbox(self):
-        self.event.set()
-        bbox = self.q.get()
+        bbox = self.q4track.get()
         #キューを空にしておく
-        while not self.q.empty():
-            self.q.get()
+        while not self.q4track.empty():
+            self.q4track.get()
         return bbox
 
     def goTrackingMode(self,img,bbox):

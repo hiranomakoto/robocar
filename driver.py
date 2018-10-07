@@ -96,7 +96,7 @@ class Driver(threading.Thread):
         self.stop()
 
     def _handle3(self,lhs,rhs):
-        logger.info('lhs={},rhs={},duration={}'.format(lhs,rhs,duration))
+        logger.info('lhs={},rhs={}'.format(lhs,rhs))
         self.set_speed(self.speed1,self.speed1)
 
         self.pwm.set_pwm(self.in1,0,rhs) #rhs fw
@@ -130,7 +130,7 @@ class Driver(threading.Thread):
 
 
     def driving_judge(self,lrpos,distance):
-        st_speed = 2047
+        st_speed = 1800
         st_dur = 1
         coef = 0.2
 
@@ -139,8 +139,8 @@ class Driver(threading.Thread):
         if distance < 0.2:
             st_speed = st_speed * 0.7
 
-        lhs = st_speed + st_speed * lrpos * 1.2
-        rhs = st_speed - st_speed * lrpos * 1.2
+        lhs = st_speed + st_speed * lrpos * 1.5
+        rhs = st_speed - st_speed * lrpos * 1.5
 
         if distance > 0.7:
             duration = 2

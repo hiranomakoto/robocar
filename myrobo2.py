@@ -32,9 +32,9 @@ def detect_dice(img):
 
     #検出の有無にかかわらず、画像保存
     #保存するファイル名はimg/imgxxxxx.jpg
-    cnt = imgcapturer.get_counter()
-    filename = 'img/img' + '0' * (5-len(str(cnt))) + str(cnt) + '.jpg'
-    imgcapturer.save_counter(cnt+1)
+    cnt = videocapturer.get_counter()
+    filename = 'img/img{:05d}'.format(cnt) + '.jpg'
+    videocapturer.save_counter(cnt+1)
     cv2.imwrite(filename,img)
     logger.info(filename)
 
@@ -126,9 +126,9 @@ if detected:
     #見失った回数
     miss_count = 0
 
-    while(True)
+    while(True):
 
-        x,y,w,h = vcap.getbbox()
+        x,y,w,h = vcap.get_bbox()
         size = vcap.cap_size
 
         #トラッキングが外れたときの処理
