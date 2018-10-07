@@ -1,6 +1,7 @@
 #! -*- coding: utf-8 -*-
 
 from logging import (getLogger, StreamHandler, INFO, Formatter)
+import sys
 
 # ログの設定
 handler = StreamHandler()
@@ -95,24 +96,36 @@ logger.info('========================')
 logger.info('detection phaze')
 logger.info('========================')
 
-#チャンスは2回
-for i in range(2):
+#引数で指定されたものに従って処理を分ける
+args = sys.argv
+if len(args) == 2:
+    mode = args[1]
+if mode == "test":
     img = vcap.get_view()
-    point,size = detect_dice(img)
-    logger.info('point={},size={}'.format(point,size))
+    bbox = cv2.selectROI(img, False)
+    cv2.destroyAllWindows()
+    detected = True
+    point = [bbox]
 
-    point = validation(point)
+    logger.info('wait...')
+    time.sleep(5)
 
-    #有効に検出できなければ
-    if point is None:
-        if i == 1:
-            break
-        #検出失敗一度目はとりあえずちょっと進んでみる
-        logger.info('go, anyway...')
-        p.put((2048,2048,0.3))
-    else:
-        detected = True
-        break
+else:
+    #チャンスは2回
+    for i in range(2):
+        img = vcap.get_view()
+        point,size = detect_dice(img)
+        logger.info('point={},size={}'.format(point,size))
+
+        point = validation(point)
+
+        #有効に検出できなければ
+        if point is None:
+            if i == 1:
+                break
+            #検出失敗一度目はとりあえずちょっと進んでみる
+            logger.info('go, anyway...')
+            p.put((2048,2048,0.3))
 
 #検出できたらtracking modeに移行
 if detected:
@@ -134,7 +147,7 @@ if detected:
         #トラッキングが外れたときの処理
         if (x,y,w,h) == (0,0,0,0):
             #10回連続でトラッキングできなかったらbreakする
-            if miss_count == 10:
+            if miss_count == 5:
                 break
             logger.info('missed!! count={}'.format(miss_count))
             miss_count += 1

@@ -55,7 +55,7 @@ class VideoCapturer(Thread):
         self.trackingMode = False #トラッキングモードフラグ
 
         #画像サイズ
-        self.cap_size = (640,360)
+        self.cap_size = (320,180)
 
         #トリガを受けて画像を返すモードに移行
         self.waitTrigger()
@@ -81,19 +81,32 @@ class VideoCapturer(Thread):
         ok = tracker.init(self.targetView, self.bbox)
         counter = get_counter()
         fourcc = cv2.VideoWriter_fourcc(*'XVID')
-        out = cv2.VideoWriter('img/trackingLog{:05d}.avi'.format(counter), fourcc, self.cap.get(5), self.cap_size)
+        out = cv2.VideoWriter('img/trackingLog{:05d}.avi'.format(counter), fourcc, 10, self.cap_size)
         save_counter(counter + 1)
+
+        #最初の1秒分画像を捨てる
+        for _ in range(30):
+            ret, frame = self.cap.read()
+
+        #何frameに一度判定するか？
+        frame_tobe_track = 3
+        frame_cnt = 0
 
         while not self.stop_flg:
             ret, frame = self.cap.read()
+
+            #判定すべきframeか？
+            if not (frame_cnt % frame_tobe_track == 0):
+                contnue
+
             #左右反転とリサイズ
             frame = cv2.resize(cv2.flip(frame,1),self.cap_size)
             # Start timer
-            timer = cv2.getTickCount()
+            #timer = cv2.getTickCount()
             # トラッカーをアップデートする
             track, bbox = tracker.update(frame)
             # FPSを計算する
-            fps = cv2.getTickFrequency() / (cv2.getTickCount() - timer);
+            #fps = cv2.getTickFrequency() / (cv2.getTickCount() - timer);
 
             # 検出した場所に四角を書く
             if track:
@@ -108,7 +121,7 @@ class VideoCapturer(Thread):
                 bbox = (0,0,0,0)
 
             # FPSを表示する
-            cv2.putText(frame, "FPS : " + str(int(fps)), (10,20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 1, cv2.LINE_AA)
+            #cv2.putText(frame, "FPS : " + str(int(fps)), (10,20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 1, cv2.LINE_AA)
 
             #検出したbboxをメインスレッドに返す
             self.q4track.put(bbox)

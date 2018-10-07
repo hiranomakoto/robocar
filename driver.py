@@ -130,14 +130,14 @@ class Driver(threading.Thread):
 
 
     def driving_judge(self,lrpos,distance):
-        st_speed = 1800
+        st_speed = 1500
         st_dur = 1
         coef = 0.2
 
         lrpos_m = lrpos * ((1 - distance) )
 
-        if distance < 0.2:
-            st_speed = st_speed * 0.7
+        #if distance < 0.2:
+        #    st_speed = st_speed * 0.7
 
         lhs = st_speed + st_speed * lrpos * 1.5
         rhs = st_speed - st_speed * lrpos * 1.5
