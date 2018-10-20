@@ -84,11 +84,11 @@ class Driver(threading.Thread):
 
     def _handle(self,lhs,rhs,duration):
         logger.info('lhs={},rhs={},duration={}'.format(lhs,rhs,duration))
-        self.set_speed(self.speed1,self.speed1)
+        self.set_speed(rhs,lhs)
 
-        self.pwm.set_pwm(self.in1,0,rhs) #rhs fw
+        self.pwm.set_pwm(self.in1,0,4095) #rhs fw
+        self.pwm.set_pwm(self.in3,0,4095) #lhs fw
         self.pwm.set_pwm(self.in2,0,0)   #rhs bw
-        self.pwm.set_pwm(self.in3,0,lhs) #lhs fw
         self.pwm.set_pwm(self.in4,0,0)   #lhs bw
 
         time.sleep(duration)
@@ -97,37 +97,12 @@ class Driver(threading.Thread):
 
     def _handle3(self,lhs,rhs):
         logger.info('lhs={},rhs={}'.format(lhs,rhs))
-        self.set_speed(self.speed1,self.speed1)
+        self.set_speed(rhs,lhs)
 
-        self.pwm.set_pwm(self.in1,0,rhs) #rhs fw
+        self.pwm.set_pwm(self.in1,0,4095) #rhs fw
+        self.pwm.set_pwm(self.in3,0,4095) #lhs fw
         self.pwm.set_pwm(self.in2,0,0)   #rhs bw
-        self.pwm.set_pwm(self.in3,0,lhs) #lhs fw
         self.pwm.set_pwm(self.in4,0,0)   #lhs bw
-
-    def _handle2(self,bsp,lhf,lhb,rhf,rhb,duration):
-        logger.info('bsp={},lhf={},lhb={},rhf={},rhb={},duration={}'.format(bsp,lhf,lhb,rhf,rhb,duration))
-        self.set_speed(bsp,bsp)
-
-        self.pwm.set_pwm(self.in1,0,rhf)   #rhs fw
-        self.pwm.set_pwm(self.in2,0,rhb)   #rhs bw
-
-        time.sleep(0.1)
-
-        self.pwm.set_pwm(self.in3,0,lhf)   #lhs fw
-        self.pwm.set_pwm(self.in4,0,lhb)   #lhs bw
-
-        time.sleep(duration*0.8)
-
-        #durationの最後の2割を速度半分にする
-        self.pwm.set_pwm(self.in3,0,int(lhf*0.5))   #lhs fw
-        self.pwm.set_pwm(self.in4,0,int(lhb*0.5))   #lhs bw
-        self.pwm.set_pwm(self.in1,0,int(rhf*0.5))   #rhs fw
-        self.pwm.set_pwm(self.in2,0,int(rhb*0.5))   #rhs bw
-
-        time.sleep(duration*0.2)
-
-        self.stop()
-
 
     def driving_judge(self,lrpos,distance):
         st_speed = 1500

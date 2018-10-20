@@ -77,7 +77,7 @@ def validation(point):
 
 #ビデオキャプチャスレッド開始
 import videocapturer
-vcap = videocapturer.VideoCapturer()
+vcap = videocapturer.VideoCapturer(flip = False) #左右反転なしで起動
 vcap.start()
 
 #ドライバースレッド開始
@@ -86,9 +86,13 @@ p = queue.Queue()
 driver = driver.Driver(p)
 driver.start()
 
-#単なる待ち
-#ただ、vcapスレッド起動完了まで、2秒程度は待ちたい
-time.sleep(7)
+#vcapスレッド起動待ち
+time.sleep(1)
+if not vcap.wait_thread_startup():
+    logger.info('★★★vcapスレッド起動失敗★★★')
+    #スレッドを止める
+    vcap.stop()
+    p.put('stop')
 
 detected = False
 
@@ -107,8 +111,11 @@ if mode == "test":
     detected = True
     point = [bbox]
 
+    #vcap側もテストモードにする
+    vcap.go_test_mode()
+
     logger.info('wait...')
-    time.sleep(5)
+    time.sleep(2)
 
 else:
     #チャンスは2回

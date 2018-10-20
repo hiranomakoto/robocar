@@ -40,22 +40,33 @@ import numpy as np
 import queue
 
 class VideoCapturer(Thread):
-    def __init__(self):
+    def __init__(self,flip = True):
         Thread.__init__(self)
+        self.flip = flip
 
     def run(self):
-        logger.info('videoCapturer thread start')
-        self.cap = cv2.VideoCapture(0)
-        logger.info('camera setup w={},h={},fps={}'.format(self.cap.get(3),self.cap.get(4),self.cap.get(5)))
-
-        self.event = Event()
+        self.startupEvent = Event() #スレッド起動待ち用
+        self.event = Event() #シャッタートリガ用
         self.q = queue.LifoQueue()
         self.q4track = queue.LifoQueue()
         self.stop_flg = False #スレッド停止フラグ
         self.trackingMode = False #トラッキングモードフラグ
+        self.test_mode = False #テストモード
 
         #画像サイズ
         self.cap_size = (320,180)
+
+        self.cap = cv2.VideoCapture(0)
+        logger.info('camera setup w={},h={},fps={}'.format(self.cap.get(3),self.cap.get(4),self.cap.get(5)))
+
+        #最初の1秒分画像を捨てる
+        for _ in range(30):
+            ret, frame = self.cap.read()
+
+        logger.info('videoCapturer thread start')
+
+        #スレッド起動をメインスレッドに通知
+        self.startupEvent.set()
 
         #トリガを受けて画像を返すモードに移行
         self.waitTrigger()
@@ -63,6 +74,10 @@ class VideoCapturer(Thread):
         #トラッキングモードに移行
         if self.trackingMode:
             self.trackTarget()
+
+        #後始末
+        self.cap.release()
+        cv2.destroyAllWindows()
 
     def waitTrigger(self):
         while (not self.stop_flg) and (not self.trackingMode):
@@ -72,7 +87,9 @@ class VideoCapturer(Thread):
                 logger.info('put view')
                 #インプット画像が左右反転しているため、flipで反転
                 #処理量節約のため、ここでcap_sizeまで圧縮
-                self.q.put(cv2.resize(cv2.flip(frame,1),self.cap_size))
+                if self.flip:
+                    frame = cv2.flip(frame,1)
+                self.q.put(cv2.resize(frame,self.cap_size))
                 self.event.clear()
 
     def trackTarget(self):
@@ -81,7 +98,7 @@ class VideoCapturer(Thread):
         ok = tracker.init(self.targetView, self.bbox)
         counter = get_counter()
         fourcc = cv2.VideoWriter_fourcc(*'XVID')
-        out = cv2.VideoWriter('img/trackingLog{:05d}.avi'.format(counter), fourcc, 10, self.cap_size)
+        out = cv2.VideoWriter('img/trackingLog{:05d}.avi'.format(counter), fourcc, 20, self.cap_size)
         save_counter(counter + 1)
 
         #最初の1秒分画像を捨てる
@@ -89,18 +106,22 @@ class VideoCapturer(Thread):
             ret, frame = self.cap.read()
 
         #何frameに一度判定するか？
-        frame_tobe_track = 3
-        frame_cnt = 0
+        frame_tobe_track = 1
+        frame_cnt = 1
 
         while not self.stop_flg:
             ret, frame = self.cap.read()
 
             #判定すべきframeか？
             if not (frame_cnt % frame_tobe_track == 0):
+                frame_cnt = 1
                 contnue
+            frame_cnt += 1
 
             #左右反転とリサイズ
-            frame = cv2.resize(cv2.flip(frame,1),self.cap_size)
+            if self.flip:
+                frame = cv2.flip(frame,1)
+            frame = cv2.resize(frame,self.cap_size)
             # Start timer
             #timer = cv2.getTickCount()
             # トラッカーをアップデートする
@@ -126,11 +147,18 @@ class VideoCapturer(Thread):
             #検出したbboxをメインスレッドに返す
             self.q4track.put(bbox)
 
-            # 加工済の画像を保存する
+            # 加工済の画像を表示/保存する
+            if self.test_mode:
+                cv2.imshow("Tracking", frame)
+                k = cv2.waitKey(1)
+                if k == 27 :
+                    break
+
             out.write(frame)
 
             # 1ms waitを入れておく
             time.sleep(0.001)
+
 
 
     #画像取得
@@ -157,5 +185,17 @@ class VideoCapturer(Thread):
         self.trackingMode = True
 
     #スレッド停止
+    def go_test_mode(self):
+        self.test_mode = True
+
+    #スレッド停止
     def stop(self):
         self.stop_flg = True
+
+    #スレッド起動待ち
+    def wait_thread_startup(self):
+        if self.startupEvent.wait(20):
+            self.startupEvent.clear()
+            return True
+        else:
+            return False
